@@ -14,6 +14,7 @@ void error(char *msg) {
 	exit(1);
 }
 
+
 int main(int argc, char *argv[]) {
 	int sockfd, newsockfd, portno, clilen;
 	char buffer[BUFFER_SIZE];
@@ -37,9 +38,11 @@ int main(int argc, char *argv[]) {
 		error("ERROR on binding");
 	
 	char kill[] = "kill\n";
+	listen(sockfd, 5); // 5 is size of queue for handling incoming connections
+	clilen = sizeof(cli_addr);
+	
 	while (1){
-		listen(sockfd, 5); // 5 is size of queue for handling incoming connections
-		clilen = sizeof(cli_addr);
+	
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 		if(newsockfd < 0)
 			error("ERROR on accept");
@@ -51,7 +54,7 @@ int main(int argc, char *argv[]) {
 		
 		printf("Here is the message: %s\n", buffer); 
 		int comp = strcmp(buffer, kill);
-		printf("Kill?: %d\n", comp);
+		// printf("Kill?: %d\n", comp);
 
 		// Check if the received message is "kill" to terminate the server
 		if (comp == 0) {

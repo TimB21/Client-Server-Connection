@@ -42,28 +42,31 @@ int main(int argc, char *argv[]) {
 
     if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
-
-    // Receive server session started message
-    n = read(sockfd, buffer, BUFFER_SIZE - 1);
-    if(n < 0) 
-        error("ERROR reading from socket"); 
-    printf("%s", buffer); 
-
-	// recieve the message detailing how to use kill and killserver
+    
+    // recieve the message detailing how to use kill and killserver
+    bzero(buffer, BUFFER_SIZE);
     n = read(sockfd, buffer, BUFFER_SIZE - 1);
     if(n < 0) 
         error("ERROR reading from socket"); 
     printf("%s", buffer); // Display startup message 2
 
+    char kill[] = "Received 'kill' command. Terminating client connection.\n";
     // Enter loop for communication
     while (1) {
-        // Display prompt with unique ID number
-        // Implement code to display prompt with received ID number
-        printf("%s$", buffer); // Display prompt
-
+        // recieve the process id
+        bzero(buffer, BUFFER_SIZE);
+        n = read(sockfd, buffer, BUFFER_SIZE - 1);
+        if(n < 0) 
+            error("ERROR reading from socket"); 
+        printf("%s", buffer); // Display startup message 2
+        
+       
         // Take user input
         bzero(buffer, BUFFER_SIZE);
         fgets(buffer, sizeof(buffer), stdin);
+
+        int comp = strcmp(buffer, kill);
+		printf("Kill?: %d\n", comp);
 
         // Send user input to server
         n = write(sockfd, buffer, strlen(buffer));
@@ -72,21 +75,22 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
-        bzero(buffer, BUFFER_SIZE);
-		fgets(buffer, BUFFER_SIZE - 1, stdin); // Read input to buffer
-		n = write(sockfd, buffer, strlen(buffer));
-		if(n < 0) 
-			error("ERROR writing to socket");
-
 		bzero(buffer, BUFFER_SIZE);
 		n = read(sockfd, buffer, BUFFER_SIZE - 1);
 		if(n < 0) 
 			error("ERROR reading from socket");
-		
-		printf("%s\n",buffer);
-		return 0;
-    	}
 
+        printf("%s", buffer); // Display startup message 2 
+
+        // Check if the received message is "kill" to terminate the server
+        if (strcmp(buffer, kill) == 0) {
+            break;
+        }    
+        
+    }
     close(sockfd);
     return 0;
 }
+
+   
+

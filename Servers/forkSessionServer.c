@@ -7,12 +7,20 @@
 #include <unistd.h> // for read and write
 #include <string.h> 
 #include <signal.h> 
+#include <sys/unistd.h> // Imports fork and related functions
+#include <limits.h> 
 
 #define BUFFER_SIZE 256
 
 void error(char *msg) {
 	perror(msg);
 	exit(1);
+}
+
+int getNumChar (int n) {
+    if (n < 0) return getNumChar ((n == INT_MIN) ? INT_MAX: -n);
+    if (n < 10) return 1;
+    return 1 + getNumChar (n / 10);
 }
 
 int main(int argc, char *argv[]) {
@@ -36,8 +44,9 @@ int main(int argc, char *argv[]) {
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		error("ERROR on binding");
-	// Listen for connections
-    listen(sockfd, MAX_PENDING_CONNECTIONS);
+
+    // Listen for connections
+    listen(sockfd, 5);
     clilen = sizeof(cli_addr);
 
     while (1) {
@@ -49,17 +58,28 @@ int main(int argc, char *argv[]) {
         }
 
         // Fork child process
-        pid_t pid = fork();
+        int pid = fork();
+
+        char killMessage[] = "kill\n";
+        char killserver[] = "killserver\n";
         if (pid < 0) 
             error("Cannot fork process");
 
         if (pid == 0) { // Child process
-            sprintf(buffer, "Server session started. \n Use \"kill\" to exit session, \"killserver\" to kill server \n");
+            sprintf(buffer, "Server session started.\nUse \"kill\" to exit session, \"killserver\" to kill server \n");
             write(newsockfd, buffer, strlen(buffer));
 
             while (1) {
-                sprintf(buffer, "%d",pid);
-                write(newsockfd, buffer, strlen(buffer)); 
+                int id = getppid();
+                int num = getNumChar(id);
+                char charID[num]; 
+                sprintf(charID, "%d", num);
+               
+
+                write(newsockfd, , strlen(charID)); 
+                if(n < 0)
+			        error("ERROR writing to socket");
+
 
                 bzero(buffer, BUFFER_SIZE);
                 n = read(newsockfd, buffer, BUFFER_SIZE - 1);
@@ -69,24 +89,22 @@ int main(int argc, char *argv[]) {
                 printf("Here is the message: %s\n", buffer); 
                 
                 n = write(newsockfd, buffer, BUFFER_SIZE); 
-                if(n < 0)
-                    error("ERROR writing to socket");
+                // if(n < 0)
+                //     error("ERROR writing to socket: Why");
                 
-                if (strcmp(buffer, "kill\n") == 0) {
+                if (strcmp(buffer, killMessage) == 0) {
                     close(newsockfd);
                     exit(0); // terminates the child process
-                } else if (strcmp(buffer, "killserver\n") == 0) {
-                    if (strcmp(buffer, "killserver\n") == 0) {
+                    break;
+                } else if (strcmp(buffer, killserver) == 0) {
                     // Send signal to parent process to terminate it
                     kill(getppid(), SIGTERM);
-                    exit(0);
                     }
                 }
+
             }
-            exit(0); // Exit child process
         } 
+        close(sockfd);
+        return 0;
     }
 
-    close(sockfd);
-    return 0;
-}

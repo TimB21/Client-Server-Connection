@@ -5,8 +5,9 @@
 #include <netinet/in.h>
 #include <strings.h> // for bzero
 #include <unistd.h> // for read and write
+#include <string.h> // for bzero
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 256 
 
 void error(char *msg) {
 	perror(msg);
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]) {
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		error("ERROR on binding");
 	
+	char kill[] = "kill";
 	while (1){
 		listen(sockfd, 5); // 5 is size of queue for handling incoming connections
 		clilen = sizeof(cli_addr);
@@ -48,14 +50,16 @@ int main(int argc, char *argv[]) {
 			error("ERROR reading from socket");
 		
 		printf("Here is the message: %s\n", buffer); 
+		int comp = strcmp(buffer, kill)-10;
+		printf("Kill?: %d\n", comp);
 
 		// Check if the received message is "kill" to terminate the server
-		if (strcmp(buffer, "kill") == 0) {
+		if (comp == 0) {
 			printf("Received 'kill' command. Terminating server.\n");
 			break; // Exit the while loop to terminate the server
 		}  
 		
-		n = write(newsockfd, "I got your message", 18); // 18 is length of the string literal in quotes
+		n = write(newsockfd, buffer, BUFFER_SIZE); // 18 is length of the string literal in quotes
 		if(n < 0)
 			error("ERROR writing to socket");
 	} 

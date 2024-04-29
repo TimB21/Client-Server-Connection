@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		error("ERROR on binding");
 	
-	char kill[] = "kill";
+	char kill[] = "kill\n";
 	while (1){
 		listen(sockfd, 5); // 5 is size of queue for handling incoming connections
 		clilen = sizeof(cli_addr);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 			error("ERROR reading from socket");
 		
 		printf("Here is the message: %s\n", buffer); 
-		int comp = strcmp(buffer, kill)-10;
+		int comp = strcmp(buffer, kill);
 		printf("Kill?: %d\n", comp);
 
 		// Check if the received message is "kill" to terminate the server
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 			break; // Exit the while loop to terminate the server
 		}  
 		
-		n = write(newsockfd, buffer, BUFFER_SIZE); // 18 is length of the string literal in quotes
+		n = write(newsockfd, buffer, BUFFER_SIZE); 
 		if(n < 0)
 			error("ERROR writing to socket");
 	} 

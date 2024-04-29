@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
             error("Cannot fork process")
 
         if (pid == 0) { // Child process
-            sprintf(buffer, "Server session started. Your process ID is: %d\n", pid);
+            sprintf(buffer, "Server session started. \n Use \"kill\" to exit session, \"killserver\" to kill server \n");
             write(newsockfd, buffer, strlen(buffer));
 
             while (1) {
@@ -64,10 +64,14 @@ int main(int argc, char *argv[]) {
                 printf("%d$ %s", pid, buffer); // Print message with process ID
                 
                 if (strcmp(buffer, "kill\n") == 0) {
-                    close(client_socket);
+                    close(newsockfd);
                     exit(0); // terminates the child process
                 } else if (strcmp(buffer, "killserver\n") == 0) {
-                    exit(0); // this should terminate the parent process
+                    if (strcmp(buffer, "killserver\n") == 0) {
+                    // Send signal to parent process to terminate it
+                    kill(getppid(), SIGTERM);
+                    exit(0);
+                    }
                 }
             }
             exit(0); // Exit child process

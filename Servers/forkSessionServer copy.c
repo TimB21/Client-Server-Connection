@@ -50,15 +50,18 @@ int main(int argc, char *argv[]) {
     char killserver[] = "killserver\n";
 	listen(sockfd, 5); // 5 is size of queue for handling incoming connections
 	clilen = sizeof(cli_addr);
-	
+	bool killed = false;
     // client connection loop
 	while (1){
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 		if(newsockfd < 0)
 			error("ERROR on accept"); 
-
-        // Fork child process
-        int pid = fork();
+        
+        int pid = -1;
+        if(killed == false){
+            // Fork child process
+            pid = fork();
+        }
 
         // Child process was forked successfully
         if(pid == 0){ 
@@ -107,6 +110,7 @@ int main(int argc, char *argv[]) {
                     // kill the parent but leave the child process running until the child recieves the kill command
                     // Send signal to parent process to terminate it
                     kill(getppid(), SIGTERM);
+                    killed = true;
                 }   
 
                 n = write(newsockfd, buffer, BUFFER_SIZE-1); 

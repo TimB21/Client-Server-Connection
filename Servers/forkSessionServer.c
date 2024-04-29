@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <strings.h> // for bzero
 #include <unistd.h> // for read and write
+#include <string.h> 
+#include <signal.h> 
 
 #define BUFFER_SIZE 256
 
@@ -49,19 +51,26 @@ int main(int argc, char *argv[]) {
         // Fork child process
         pid_t pid = fork();
         if (pid < 0) 
-            error("Cannot fork process")
+            error("Cannot fork process");
 
         if (pid == 0) { // Child process
             sprintf(buffer, "Server session started. \n Use \"kill\" to exit session, \"killserver\" to kill server \n");
             write(newsockfd, buffer, strlen(buffer));
 
             while (1) {
+                sprintf(buffer, "%d",pid);
+                write(newsockfd, buffer, strlen(buffer)); 
+
                 bzero(buffer, BUFFER_SIZE);
                 n = read(newsockfd, buffer, BUFFER_SIZE - 1);
                 if(n < 0)
                     error("ERROR reading from socket");
-
-                printf("%d$ %s", pid, buffer); // Print message with process ID
+                
+                printf("Here is the message: %s\n", buffer); 
+                
+                n = write(newsockfd, buffer, BUFFER_SIZE); 
+                if(n < 0)
+                    error("ERROR writing to socket");
                 
                 if (strcmp(buffer, "kill\n") == 0) {
                     close(newsockfd);
@@ -75,10 +84,9 @@ int main(int argc, char *argv[]) {
                 }
             }
             exit(0); // Exit child process
-        } else { // Parent process
-            close(newsockfd); // Close child socket in parent
-        }
+        } 
     }
+
     close(sockfd);
     return 0;
 }

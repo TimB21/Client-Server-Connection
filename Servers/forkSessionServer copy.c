@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
                     // kill the child process
                     printf("Received 'kill' command. Terminating client connection.\n");  
 
-                    sprintf(buffer, "Received 'kill' command. Terminating client connection.\n");
+                    sprintf(buffer, "kill\n");
                     n = write(newsockfd, buffer, strlen(buffer)); 
                     if(n < 0)
 			            error("ERROR writing to socket");
@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
                 if(n < 0)
                     error("ERROR writing to socket");
 
+    
         }
 	} 
     }

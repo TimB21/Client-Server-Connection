@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
         error("ERROR reading from socket"); 
     printf("%s", buffer); // Display startup message 2
 
-    char kill[] = "Received 'kill' command. Terminating client connection.\n";
+    char kill[] = "kill\n";
     // Enter loop for communication
     while (1) {
         // recieve the process id
@@ -58,15 +58,13 @@ int main(int argc, char *argv[]) {
         n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n < 0) 
             error("ERROR reading from socket"); 
+
         printf("%s", buffer); // Display startup message 2
         
        
         // Take user input
         bzero(buffer, BUFFER_SIZE);
         fgets(buffer, sizeof(buffer), stdin);
-
-        int comp = strcmp(buffer, kill);
-		printf("Kill?: %d\n", comp);
 
         // Send user input to server
         n = write(sockfd, buffer, strlen(buffer));
@@ -82,11 +80,11 @@ int main(int argc, char *argv[]) {
 
         printf("%s", buffer); // Display startup message 2 
 
+        int comp = strcmp(buffer, kill);
         // Check if the received message is "kill" to terminate the server
-        if (strcmp(buffer, kill) == 0) {
-            break;
-        }    
-        
+        if (comp == 0) {
+            return 0;
+        }     
     }
     close(sockfd);
     return 0;

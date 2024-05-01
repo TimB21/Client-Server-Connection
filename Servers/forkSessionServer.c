@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     // keeps track of the server being killed
     bool killed = false;
 
-    while (true) {
+    while (1) {
         listen(sockfd, 5);
         clilen = sizeof(cli_addr);
         // accept new client connection if server is not killed

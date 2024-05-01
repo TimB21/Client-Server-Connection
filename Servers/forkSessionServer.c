@@ -126,10 +126,6 @@ int main(int argc, char *argv[]) {
                     if (n < 0)
                         error("ERROR writing to socket");
 
-                    clients--;
-                    if(clients == 0){
-                        return 0;
-                    }
                     break;
                 }
 

@@ -43,49 +43,54 @@ int main(int argc, char *argv[]) {
     if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
     
-    // recieve the message detailing how to use kill and killserver
+    // clear the buffer to prepare for read
     bzero(buffer, BUFFER_SIZE);
+    
+    // client recieves the start up message and instructions on using kill and killserver
     n = read(sockfd, buffer, BUFFER_SIZE - 1);
     if(n < 0) 
         error("ERROR reading from socket"); 
-    printf("%s", buffer); // Display startup message 2
+    printf("%s", buffer); 
 
+    // initialize char to store kill message with next line to account for client pressing enter 
     char kill[] = "kill\n";
     // Enter loop for communication
     while (1) {
-        // recieve the process id
+        // recieve the process id from the server
         bzero(buffer, BUFFER_SIZE);
         n = read(sockfd, buffer, BUFFER_SIZE - 1);
         if(n < 0) 
             error("ERROR reading from socket"); 
-
-        printf("%s", buffer); // Display startup message 2
+        printf("%s", buffer); 
         
        
-        // Take user input
+        // clears buffer and gets user input
         bzero(buffer, BUFFER_SIZE);
         fgets(buffer, sizeof(buffer), stdin);
 
-        // Send user input to server
+        // send user input to server
         n = write(sockfd, buffer, strlen(buffer));
         if (n < 0) {
             perror("ERROR writing to socket");
             exit(1);
         }
 
+        // clears the input and reads from the buffer
 		bzero(buffer, BUFFER_SIZE);
 		n = read(sockfd, buffer, BUFFER_SIZE - 1);
 		if(n < 0) 
 			error("ERROR reading from socket");
+        // prints out the echo from the server
+        printf("%s", buffer);
 
-        printf("%s", buffer); // Display startup message 2 
-
+        // checks if the echo was a kill command
         int comp = strcmp(buffer, kill);
-        // Check if the received message is "kill" to terminate the server
+        // if kill command was recieved, terminate the client connection
         if (comp == 0) {
             return 0;
         }     
     }
+    
     close(sockfd);
     return 0;
 }

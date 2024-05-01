@@ -1,110 +1,161 @@
-#include <stdlib.h> // for exit
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <strings.h> // for bzero
-#include <unistd.h> // for read and write
-#include <string.h> 
-#include <signal.h> 
-#include <sys/unistd.h> // Imports fork and related functions
-#include <limits.h> 
+#include <strings.h>
+#include <unistd.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <arpa/inet.h>
+#include <stdbool.h>
+#include <limits.h>
 
 #define BUFFER_SIZE 256
 
 void error(char *msg) {
-	perror(msg);
-	exit(1);
+    perror(msg);
+    exit(1);
 }
 
-int getNumChar (int n) {
-    if (n < 0) return getNumChar ((n == INT_MIN) ? INT_MAX: -n);
+int getNumChar(int n) {
+    if (n < 0) return getNumChar((n == INT_MIN) ? INT_MAX : -n);
     if (n < 10) return 1;
-    return 1 + getNumChar (n / 10);
+    return 1 + getNumChar(n / 10);
 }
 
 int main(int argc, char *argv[]) {
-	int sockfd, newsockfd, portno, clilen;
-	char buffer[BUFFER_SIZE];
-	struct sockaddr_in serv_addr, cli_addr;
-	int n;
-	if(argc < 2) {
-		fprintf(stderr, "ERROR, no port provided\n");
-		exit(1);
-	}
+    int sockfd, newsockfd, portno, clilen;
+    char buffer[BUFFER_SIZE];
+    struct sockaddr_in serv_addr, cli_addr;
+    int n;
+    int clients = 0;
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0)
-		error("ERROR opening socket");
-
-	bzero((char *) &serv_addr, sizeof(serv_addr)); // write zero-valued bytes to variable
-	portno = atoi(argv[1]);
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(portno); // host-to-network byte order conversion
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-		error("ERROR on binding");
-
-    // Listen for connections
-    listen(sockfd, 5);
-    clilen = sizeof(cli_addr);
-
-    while (1) {
-        // Accept connection
-        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-        if (newsockfd < 0) {
-            perror("ERROR on accept");
-            exit(1);
-        }
-
-        // Fork child process
-        int pid = fork();
-
-        char killMessage[] = "kill\n";
-        char killserver[] = "killserver\n";
-        if (pid < 0) 
-            error("Cannot fork process");
-
-        if (pid == 0) { // Child process
-            sprintf(buffer, "Server session started.\nUse \"kill\" to exit session, \"killserver\" to kill server \n");
-            write(newsockfd, buffer, strlen(buffer));
-
-            while (1) {
-                int id = getppid();
-                int num = getNumChar(id);
-                char charID[num]; 
-                sprintf(charID, "%d", num);
-               
-
-                write(newsockfd, , strlen(charID)); 
-                if(n < 0)
-			        error("ERROR writing to socket");
-
-
-                bzero(buffer, BUFFER_SIZE);
-                n = read(newsockfd, buffer, BUFFER_SIZE - 1);
-                if(n < 0)
-                    error("ERROR reading from socket");
-                
-                printf("Here is the message: %s\n", buffer); 
-                
-                n = write(newsockfd, buffer, BUFFER_SIZE); 
-                // if(n < 0)
-                //     error("ERROR writing to socket: Why");
-                
-                if (strcmp(buffer, killMessage) == 0) {
-                    close(newsockfd);
-                    exit(0); // terminates the child process
-                    break;
-                } else if (strcmp(buffer, killserver) == 0) {
-                    // Send signal to parent process to terminate it
-                    kill(getppid(), SIGTERM);
-                    }
-                }
-
-            }
-        } 
-        close(sockfd);
-        return 0;
+    if (argc < 2) {
+        fprintf(stderr, "ERROR, no port provided\n");
+        exit(1);
     }
 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+        error("ERROR opening socket");
+
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    portno = atoi(argv[1]);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(portno);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+        error("ERROR on binding");
+
+    char killMessage[] = "kill\n";
+    char killserver[] = "killserver\n";
+
+    // keeps track of the server being killed
+    bool killed = false;
+
+    while (true) {
+        listen(sockfd, 5);
+        clilen = sizeof(cli_addr);
+        // accept new client connection if server is not killed
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        if (newsockfd < 0) 
+                error("ERROR on accept");
+        
+        clients++; 
+
+        // fork new process
+        int pid = fork();
+        if (pid == -1) {
+            printf("Cannot fork child process");
+        } else if (pid == 0) {
+            // We found this while searching how allow the child to keep running after the parent process terminates
+            // https://stackoverflow.com/questions/61622290/process-child-creating-a-new-session
+            // https://www.ibm.com/docs/en/zos/2.4.0?topic=functions-setsid-create-session-set-process-group-id
+            // creates a new session to allow client to run
+            setsid();
+
+            // close the listening socket in the child process
+            close(sockfd);
+
+            // print the startup message and instructions on kill/killserver to the buffer
+            sprintf(buffer, "Server session started.\nUse \"kill\" to exit session, \"killserver\" to kill server \n");
+            
+            // write the buffer to the new sock
+            n = write(newsockfd, buffer, strlen(buffer));
+            if (n < 0)
+                error("ERROR writing to socket");
+
+            // new client was created and will run until it is killed by break condition
+            while (1) {
+                // gets the current child process id
+                int id = getpid();
+                // get number of characters allocated to the process id
+                int num = getNumChar(id);
+                // create a char array based on the number of characters in the child process id
+                char charID[num];
+                // clears the buffer and prints the process id with the $ proceeding
+                bzero(buffer, BUFFER_SIZE);
+                sprintf(buffer, "%d$", id);
+
+                // write the child process id each time
+                n = write(newsockfd, buffer, num + 1);
+                if (n < 0)
+                    error("ERROR writing to socket");
+
+                // clear the buffer
+                bzero(buffer, BUFFER_SIZE);
+                // read from the buffer
+                n = read(newsockfd, buffer, BUFFER_SIZE - 1);
+                if (n < 0)
+                    error("ERROR reading from socket");
+
+                // prints out the client id to the server
+                printf("Client ID %d sent: %s", getpid(), buffer);
+
+                // check if the received message is "kill" to terminate the server
+                if (strcmp(buffer, killMessage) == 0) {
+                    // kill the child process
+                    printf("Received 'kill' command. Terminating client connection.\n");
+
+                    // print onto the buffer the kill message
+                    sprintf(buffer, "kill\n");
+                    // send the kill command back to the client
+                    n = write(newsockfd, buffer, strlen(buffer));
+                    if (n < 0)
+                        error("ERROR writing to socket");
+
+                    clients--;
+                    if(clients == 0){
+                        return 0;
+                    }
+                    break;
+                }
+
+                // check if the received message is "kill" to terminate the server
+                if (killed == false && strcmp(buffer, killserver) == 0) {
+                    printf("Received 'kill' command. Terminating server.\n");
+                    // Send signal to parent process to terminate it
+                    kill(getppid(), SIGKILL);
+                    killed = true;
+                }
+
+                // echo the user's message back to the client
+                n = write(newsockfd, buffer, BUFFER_SIZE - 1);
+                if (n < 0)
+                    error("ERROR writing to socket");
+            }
+            // close the socket in the child process
+            close(newsockfd);
+            // exit the child process
+            exit(0);
+        }
+        // close the socket in the parent process after child has finished running
+        close(newsockfd);
+    }
+
+    // close the listening socket in the parent process
+    close(sockfd);
+    return 0;
+}

@@ -37,36 +37,45 @@ int main(int argc, char *argv[]) {
 	if(bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
 		error("ERROR on binding");
 	
+	// initialize char array to store the kill message with the next line to account for client hitting enter
 	char kill[] = "kill\n";
 	listen(sockfd, 5); // 5 is size of queue for handling incoming connections
 	clilen = sizeof(cli_addr);
 	
+	// loops until broken which only occurs upon recieving kill
 	while (1){
-	
+		// accepts new sock
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 		if(newsockfd < 0)
 			error("ERROR on accept");
 
+		// clears the buffer
 		bzero(buffer, BUFFER_SIZE);
+		
+		// reads message from client
 		n = read(newsockfd, buffer, BUFFER_SIZE - 1);
 		if(n < 0)
 			error("ERROR reading from socket");
 		
+		//prints out the client's to server output
 		printf("Here is the message: %s\n", buffer); 
+		// checks if the buffer has recieved the kill command
 		int comp = strcmp(buffer, kill);
 		// printf("Kill?: %d\n", comp);
 
-		// Check if the received message is "kill" to terminate the server
+		// check if the received message is "kill" to terminate the server
 		if (comp == 0) {
+			// prints to server output to indicate that server is being killed
 			printf("Received 'kill' command. Terminating server.\n");
-			break; // Exit the while loop to terminate the server
+			break; // exit the while loop to terminate the server
 		}  
-		
+
+		// echo the message to client 
 		n = write(newsockfd, buffer, BUFFER_SIZE); 
 		if(n < 0)
 			error("ERROR writing to socket");
 	} 
-	
+
 	close(sockfd);
 	return 0;
 } 

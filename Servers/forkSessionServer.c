@@ -19,6 +19,8 @@ void error(char *msg) {
     exit(1);
 }
 
+// https://stackoverflow.com/questions/1068849/how-do-i-determine-the-number-of-digits-of-an-integer-in-c
+// simple helper method to get number of characters for the id
 int getNumChar(int n) {
     if (n < 0) return getNumChar((n == INT_MIN) ? INT_MAX : -n);
     if (n < 10) return 1;
@@ -132,6 +134,7 @@ int main(int argc, char *argv[]) {
                 // check if the received message is "kill" to terminate the server
                 if (killed == false && strcmp(buffer, killserver) == 0) {
                     printf("Received 'kill' command. Terminating server.\n");
+                    // https://aljensencprogramming.wordpress.com/2014/05/15/the-kill-function-in-c/
                     // Send signal to parent process to terminate it
                     kill(getppid(), SIGKILL);
                     killed = true;

@@ -18,7 +18,8 @@ void error(char *msg) {
 }
 
 // https://stackoverflow.com/questions/19201689/naming-threads-using-typedef-struct 
-// I used this source to get an understanding of how to create different threads and store variables for each of them
+// I found this source utilizing threads to make a flight simulation 
+// It helped me understand how threading could be done in C and the ability to use typedef struct to store values in the thread arguments
 typedef struct {
     int client_socket;
 } ThreadArgs;

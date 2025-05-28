@@ -8,15 +8,6 @@ The goal of this project was to implement multiple client and server programs to
 3. **threadSessionServer.c**: Launches new threads using POSIX threads for each client connection. Commands `kill` and `killserver` work similarly to the fork-based server.
 4. **sessionClient.c**: Connects to servers, displays startup messages for user commands, and communicates with servers until the user enters `exit`. This client works with both fork-based and thread-based servers but not with simpler echo or default servers.
 
-## Files
-- **defaultClient.c:** 
-- **sessionClient.c:**
-- **defaultServer.c:**
-- **echoServer.c:**
-- **forkSessionServer.c:**
-- **threadSessionServer.c:**
-- **threadSessionServerCopy.c:**
-
 ## Networking Concepts
 
 - **Ports**: 16-bit unsigned integers identifying applications on a device for internet communication.

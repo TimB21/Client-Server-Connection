@@ -1,4 +1,4 @@
-# Server-Client Connection Project
+# Client-Server Connection Project
 
 ## Overview
 The goal of this project was to implement multiple client and server programs to facilitate communication across a network. We developed four key programs:
